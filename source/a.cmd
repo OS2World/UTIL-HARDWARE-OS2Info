@@ -1,0 +1,2 @@
+tasm a.tas /m
+

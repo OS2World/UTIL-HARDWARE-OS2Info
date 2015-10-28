@@ -1,0 +1,57 @@
+                .386
+
+                EXTRN   DosFlatToSel:Proc
+
+FLAT		GROUP	CODE32
+
+CODE32          SEGMENT DWORD PUBLIC USE32 'CODE'
+                ASSUME  CS:FLAT,DS:FLAT
+
+WrapDos16MemAvail PROC  Near
+                PUBLIC  WrapDos16MemAvail
+                
+                push    ds es ebp ebx esi edi
+                mov     ebp,esp
+                
+                mov 	esi,esp
+                
+                cmp     sp,4*1024       	; 4K = Thunk minimum stack
+                jae     @@2
+                sub     sp,sp		
+ @@2:                
+ 		push 	ss
+ 		push 	esi
+ 
+                mov     eax,esp                 ; Convert SS:ESP to
+                Call    DosFlatToSel            ; SS:SP for a 0:32->16:16 thunk.
+                push    eax
+                lss     sp,[esp]
+                jmp     Far Ptr WrapDos16MemAvail_Thunk_16
+ALIGN 4
+Back_To_32:
+                and     esp,0FFFFh
+                lss     esp,[esp]
+                
+		pop     edi esi ebx ebp es ds                
+		ret
+WrapDos16MemAvail ENDP
+
+CODE32          ENDS
+
+extrn Dos16MemAvail: far                
+
+CODE16          SEGMENT WORD PUBLIC USE16 'CODE'
+                ASSUME  CS:CODE16
+                
+WrapDos16MemAvail_Thunk_16:
+		push 	eax		
+		mov 	ax,sp
+		push 	ss
+		push 	ax
+		call 	Dos16MemAvail
+		pop 	eax
+                jmp     Far Ptr Back_To_32
+
+CODE16          ENDS
+
+                END
